@@ -1,7 +1,9 @@
+package Main;
 import java.util.ArrayList;
 
 import Path.Path;
 import Path.Segment;
+import Train.Consumption;
 import Train.Position;
 import Train.State;
 import Train.Train;
@@ -172,6 +174,7 @@ public class Problem {
 			
 			if(hSgm == goal.getHSgm() && currentSpeed == goal.getSpeed()) {
 				sp.print();
+				System.out.println(Consumption.calcConsumtion(sp));
 				return true;
 			}
 			

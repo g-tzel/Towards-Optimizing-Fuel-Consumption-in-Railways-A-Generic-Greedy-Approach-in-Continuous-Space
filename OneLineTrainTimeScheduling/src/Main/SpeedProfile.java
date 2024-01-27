@@ -1,3 +1,4 @@
+package Main;
 import java.util.ArrayList;
 
 import Path.Segment;
@@ -123,6 +124,14 @@ public class SpeedProfile {
 
 	public State getState(int i) {
 		return states.get(i);
+	}
+	
+	public double getStartTimeAtState(int i) {
+		return timelabels.get(i).mint();
+	}
+	
+	public double getEndTimeAtState(int i) {
+		return timelabels.get(i).maxt();
 	}
 	
 	public void print() {

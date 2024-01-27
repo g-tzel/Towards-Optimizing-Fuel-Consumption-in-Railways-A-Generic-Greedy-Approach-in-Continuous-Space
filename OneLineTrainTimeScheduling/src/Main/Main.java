@@ -1,5 +1,8 @@
+package Main;
+
 import Path.Path;
 import Path.Segment;
+import Train.Consumption;
 import Train.Position;
 import Train.State;
 import Train.Train;
@@ -7,8 +10,8 @@ import Train.Train;
 public class Main {
 
 	public static void main(String[] args) {
-		problem1();
-//		problem2();
+//		problem1();
+		problem2();
 	}
 	
 	public static void problem1() {
