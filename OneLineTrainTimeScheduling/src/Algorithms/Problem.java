@@ -1,6 +1,7 @@
-package Main;
+package Algorithms;
 import java.util.ArrayList;
 
+import Main.SpeedProfile;
 import Path.Path;
 import Path.Segment;
 import Train.Consumption;
@@ -25,7 +26,7 @@ public class Problem {
 		System.out.println("The train: " + train + " starts from " + init + " and must get to " + goal);
 	}
 
-	public boolean solve() {
+	public SpeedProfile solve() {
 //		Initialization
 		double currentSpeed = init.getSpeed();
 		
@@ -136,7 +137,7 @@ public class Problem {
 					}
 //					End of Algorithm 2
 					if(!flag) {
-						return false;
+						return null;
 					}
 				}
 			}
@@ -175,15 +176,158 @@ public class Problem {
 			if(hSgm == goal.getHSgm() && currentSpeed == goal.getSpeed()) {
 				sp.print();
 				System.out.println(Consumption.calcConsumtion(sp));
-				return true;
+				return sp;
 			}
 			
 			Times.getMinT(currentAcc, currentSpeed, tExit, hExit, currentSpeedLimit);
 		}
-		return false;
+		return sp;
 	}
 
-	
+	public SpeedProfile solveAgain(SpeedProfile oldSp) {
+//		Initialization
+		double currentSpeed = init.getSpeed();
+		
+		int hSgm = init.getHSgm();
+		int tSgm = init.getTSgm();
+		
+		double hExit = init.getDist();
+		double tExit = path.getLengthOf(hSgm) - (init.getTotalLength() - hExit - train.getLength());
+		if(hExit == 0) {
+			hSgm++;
+			hExit = path.getLengthOf(hSgm);
+		}
+		
+		double currentAcc = -0.5;
+		double tTotal = oldSp.getEndTimeAtState(oldSp.nOfEntries()-1);;
+		SpeedProfile sp = new SpeedProfile(init, tTotal);
+		
+		
+		double currentSpeedLimit = getSpeedLimit(train, path.getSegments(tSgm, hSgm));
+		if(currentSpeedLimit == currentSpeed) {
+			currentAcc = 0;
+		}
+		
+		Times.getMinT(currentAcc, currentSpeed, tExit, hExit, currentSpeedLimit);
+		while(sp.getLastState()!=goal) {
+//			Update variables
+			double distTraveled = currentSpeed*Times.getTmin() + 0.5*currentAcc*Math.pow(Times.getTmin(), 2);
+			currentSpeed += Times.getTmin()*currentAcc;
+			hExit -= distTraveled;
+			tExit -= distTraveled;
+			tTotal += Times.getTmin();
+			
+			boolean flag = false;
+			if(Times.getTmin() == Times.getT2()) {
+				System.out.println("t2");
+				hSgm++;
+				hExit = path.getLengthOf(hSgm);
+				currentSpeedLimit = getSpeedLimit(train, path.getSegments(tSgm, hSgm));
+
+//				Backtracking
+				if(currentSpeed > currentSpeedLimit) {
+					System.out.println("BackTracking");
+//					Algorithm 2
+					for(int i = length(sp)-2; i >= 0 && !flag; i--) {
+//						Initialization
+						double v0 = currentSpeedLimit;
+						double v1 = speed(sp, i);
+						double v2 = speed(sp, i+1);
+						double a = train.getMaxAcc();
+						double b = train.getMaxDec();
+						
+//						Consecutive segments that train does not decelerate
+						if(v2 >= v1){
+							if(v2 == v1) {
+								a = 0;								
+							}
+							
+//							Calculate formulas
+							double d1 = dist(sp, i);
+							double d = dist(sp);
+							double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
+							double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
+							
+							if(xdec>=d1) { //Not in paper
+								if(vHash > v1) {
+									sp = sp.keepStates(i);
+									double t1Hash = (double)((vHash-v1)/a);
+									double t2Hash = (double)((vHash-v0)/b);
+//									Add 2 new states
+									tTotal = sp.getTimeOfState(i);
+									tTotal+=t1Hash;
+									sp.addState(new State(new Position(path.getSegments(sp.getLastState().getTSgm(), sp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+									tTotal+=t2Hash;
+									hExit=path.getLengthOf(hSgm);
+									tExit=train.getLength();
+									sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+									currentSpeed = v0;
+									currentAcc = 0;
+									flag = true;
+								}
+								
+								if(vHash == v1) {
+									sp = sp.keepStates(i);
+									hExit=path.getLengthOf(hSgm);
+									tExit=train.getLength();
+									if(xdec > d1) {
+										double t1Hash = (double)((xdec-d1)/vHash);
+										double t2Hash = (double)((vHash-v0)/b);
+//										Add 2 new states
+										tTotal = sp.getTimeOfState(i);
+										tTotal+=t1Hash;
+										sp.addState(new State(new Position(path.getSegments(sp.getLastState().getTSgm(), sp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+										tTotal+=t2Hash;
+										sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+									}else {
+										double tHash = (double)((vHash-v0)/b);
+//										Add 1 new state
+										tTotal = sp.getTimeOfState(i);
+										tTotal+=tHash;
+										sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+									}
+									currentSpeed = v0;
+									currentAcc = 0;
+									flag = true;
+								}
+							}
+						}
+					}
+//					End of Algorithm 2
+					if(!flag) {
+						return null;
+					}
+				}
+			}
+			
+			if(Times.getTmin() == Times.getT1()) {
+				System.out.println("t1");
+				tSgm++;
+				tExit = path.getLengthOf(tSgm);
+				currentSpeedLimit = getSpeedLimit(train, path.getSegments(tSgm, hSgm));
+				if(currentSpeed < currentSpeedLimit) {
+					currentAcc = train.getMaxAcc();
+				}
+			}
+			
+			if(Times.getTmin() == Times.getT3() && currentSpeed == currentSpeedLimit) {
+				System.out.println("t3");
+				currentAcc = 0;
+			}
+			
+			if(!flag) {				
+				sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), hExit), currentSpeed), tTotal);
+			}
+			
+			if(hSgm == goal.getHSgm() && currentSpeed == goal.getSpeed()) {
+				sp.print();
+				return sp;
+			}
+			
+			Times.getMinT(currentAcc, currentSpeed, tExit, hExit, currentSpeedLimit);
+		}
+		return null;
+	}
 
 	private double speed(SpeedProfile sp, int i) {
 		return sp.getSpeedOf(i);
@@ -226,6 +370,10 @@ public class Problem {
 			}
 		}
 		return Math.min(lowestSpeedLimit, train.getMaxSpeed());
+	}
+	
+	public Path getPath() {
+		return path;
 	}
 	
 	static class Times{
@@ -278,5 +426,17 @@ public class Problem {
 		public static double getT3() {
 			return t3;
 		}
+	}
+
+	public State getGoal() {
+		return goal;
+	}
+
+	public Train getTrain() {
+		return train;
+	}
+
+	public State getInit() {
+		return init;
 	}
 }

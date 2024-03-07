@@ -19,7 +19,6 @@ public class Consumption {
 			double t2 = sp.getEndTimeAtState(i);
 			deltaT = t2-t1;
 			total += spotSpeedCons(startSpeed, endSpeed, deltaT);
-			System.out.println(total);
 		}
 		return total;
 	}

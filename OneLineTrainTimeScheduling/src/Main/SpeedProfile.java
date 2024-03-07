@@ -147,4 +147,42 @@ public class SpeedProfile {
 		return timelabels.get(i).maxt();
 	}
 	
+	public int getIndexOf(State aState) {
+		return states.indexOf(aState);
+	}
+	
+	public int getIndexOfStateWithSpeed(State startState, double speed) {
+		int start = getIndexOf(startState);
+		double currSpeed = startState.getSpeed();
+		if(currSpeed < speed) {			
+			for(int i = start+1; i < this.nOfEntries(); i++) {
+				State aState = getState(i);
+				if(aState.getSpeed() >= speed) {
+					return i;
+				}
+			}
+		}
+		
+		for(int i = start+1; i < this.nOfEntries(); i++) {
+			State aState = getState(i);
+			if(aState.getSpeed() <= speed) {
+				return i;
+			}
+		}
+		
+		return -1;
+	}
+	
+	public double calcDistTraveled(int index) {
+		double distance = 0;
+		for(int i = 0; i < index; i++) {
+			State aState = getState(i);
+			double deltaT = getEndTimeAtState(i+1)-getEndTimeAtState(i);
+			double acc = (getSpeedOf(i+1)-aState.getSpeed())/deltaT;
+			distance += aState.getSpeed()*deltaT + 0.5*acc*Math.pow(deltaT, 2);
+		}
+		return distance;
+	}
+	
+	
 }
