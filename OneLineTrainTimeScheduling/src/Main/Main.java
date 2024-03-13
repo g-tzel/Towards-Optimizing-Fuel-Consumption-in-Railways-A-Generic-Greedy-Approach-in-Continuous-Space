@@ -11,10 +11,11 @@ import Train.Train;
 public class Main {
 
 	public static void main(String[] args) {
-		problem1();
-		problem2();
+//		problem1();
+//		problem2();
+//		problem3();
 	}
-	
+
 	public static void problem1() {
 //		Create a path
 		Path p = new Path();
@@ -113,10 +114,46 @@ public class Main {
 		
 		
 		Fuel f = new Fuel(sp, problem);
-		SpeedProfile newSp = f.solve(10);
-		Fuel f2 = new Fuel(newSp, problem);
-		SpeedProfile newSp2 = f2.solve(10);
-//		Fuel f3 = new Fuel(newSp2, problem);
-//		f3.solve(1);
+		f.solve(10);
+	}
+	
+	private static void problem3() {
+//		Create a path
+		Path p = new Path();
+		Segment ex0 = new Segment(0, 1000, 1000, 100);
+		Segment ex1 = new Segment(1000, 2000, 1000, 100);
+//		Segment ex2 = new Segment(0, 150, 150, 100);
+//		Segment ex3 = new Segment(0, 150, 150, 100);
+		Segment exfx = new Segment(2000, 2000, 0, 0);
+		p.addSegment(ex0);
+		p.addSegment(ex1);
+		p.addSegment(exfx);
+		p.print();
+		
+//		Create a train
+		double length = 150;
+		double maxSpeed = 75;
+		double maxAcc = 1.5;
+		double maxDec = 1;
+		Train t = new Train(length, maxSpeed, maxAcc, maxDec);
+		
+		t.print();
+		
+//		Create a problem
+		State init = new State(new Position(ex0, 1000), 0);
+		State goal = new State(new Position(exfx, 0), 0);
+		Problem problem = new Problem(t, p, init, goal);
+		
+		problem.print();
+		SpeedProfile sp = problem.solve();
+		if(sp != null) {
+			System.out.println("Has solution");
+			Fuel f = new Fuel(sp, problem);
+			f.solve(10);
+		}else {
+			System.out.println("Doesn't have solution");
+		}
+		
+		
 	}
 }

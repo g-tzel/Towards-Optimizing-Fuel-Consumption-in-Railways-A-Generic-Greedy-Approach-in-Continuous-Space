@@ -186,6 +186,7 @@ public class Problem {
 
 	public SpeedProfile solveAgain(SpeedProfile oldSp) {
 //		Initialization
+		boolean first = true;
 		double currentSpeed = init.getSpeed();
 		
 		int hSgm = init.getHSgm();
@@ -198,10 +199,9 @@ public class Problem {
 			hExit = path.getLengthOf(hSgm);
 		}
 		
-		double currentAcc = -0.5;
+		double currentAcc = train.getMaxAcc();
 		double tTotal = oldSp.getEndTimeAtState(oldSp.nOfEntries()-1);;
-		SpeedProfile sp = new SpeedProfile(init, tTotal);
-		
+		SpeedProfile newSp = oldSp.keepStates(oldSp.nOfEntries()-1);
 		
 		double currentSpeedLimit = getSpeedLimit(train, path.getSegments(tSgm, hSgm));
 		if(currentSpeedLimit == currentSpeed) {
@@ -209,7 +209,7 @@ public class Problem {
 		}
 		
 		Times.getMinT(currentAcc, currentSpeed, tExit, hExit, currentSpeedLimit);
-		while(sp.getLastState()!=goal) {
+		while(newSp.getLastState()!=goal) {
 //			Update variables
 			double distTraveled = currentSpeed*Times.getTmin() + 0.5*currentAcc*Math.pow(Times.getTmin(), 2);
 			currentSpeed += Times.getTmin()*currentAcc;
@@ -223,16 +223,16 @@ public class Problem {
 				hSgm++;
 				hExit = path.getLengthOf(hSgm);
 				currentSpeedLimit = getSpeedLimit(train, path.getSegments(tSgm, hSgm));
-
+				
 //				Backtracking
 				if(currentSpeed > currentSpeedLimit) {
 					System.out.println("BackTracking");
 //					Algorithm 2
-					for(int i = length(sp)-2; i >= 0 && !flag; i--) {
+					for(int i = length(newSp)-2; i >= 0 && !flag; i--) {
 //						Initialization
 						double v0 = currentSpeedLimit;
-						double v1 = speed(sp, i);
-						double v2 = speed(sp, i+1);
+						double v1 = speed(newSp, i);
+						double v2 = speed(newSp, i+1);
 						double a = train.getMaxAcc();
 						double b = train.getMaxDec();
 						
@@ -243,52 +243,69 @@ public class Problem {
 							}
 							
 //							Calculate formulas
-							double d1 = dist(sp, i);
-							double d = dist(sp);
+							double d1 = newSp.calcDistTraveled(i);
+							double d = dist(newSp);
 							double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
 							double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
 							
 							if(xdec>=d1) { //Not in paper
-								if(vHash > v1) {
-									sp = sp.keepStates(i);
-									double t1Hash = (double)((vHash-v1)/a);
-									double t2Hash = (double)((vHash-v0)/b);
-//									Add 2 new states
-									tTotal = sp.getTimeOfState(i);
-									tTotal+=t1Hash;
-									sp.addState(new State(new Position(path.getSegments(sp.getLastState().getTSgm(), sp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
-									tTotal+=t2Hash;
-									hExit=path.getLengthOf(hSgm);
-									tExit=train.getLength();
-									sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
-									currentSpeed = v0;
-									currentAcc = 0;
-									flag = true;
-								}
-								
-								if(vHash == v1) {
-									sp = sp.keepStates(i);
-									hExit=path.getLengthOf(hSgm);
-									tExit=train.getLength();
+								if(newSp.getState(i+1).equals(init)) {
+									newSp = newSp.keepStates(i+1);
+									hExit = path.getLengthOf(hSgm);
+									tExit = train.getLength();
 									if(xdec > d1) {
-										double t1Hash = (double)((xdec-d1)/vHash);
-										double t2Hash = (double)((vHash-v0)/b);
-//										Add 2 new states
-										tTotal = sp.getTimeOfState(i);
-										tTotal+=t1Hash;
-										sp.addState(new State(new Position(path.getSegments(sp.getLastState().getTSgm(), sp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
-										tTotal+=t2Hash;
-										sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
-									}else {
 										double tHash = (double)((vHash-v0)/b);
 //										Add 1 new state
-										tTotal = sp.getTimeOfState(i);
+										tTotal = newSp.getTimeOfState(i+1);
 										tTotal+=tHash;
-										sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+										newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
 									}
 									currentSpeed = v0;
 									currentAcc = 0;
 									flag = true;
+									first = false;
+								}else {									
+									if(vHash > v1) {
+										newSp = newSp.keepStates(i);
+										double t1Hash = (double)((vHash-v1)/a);
+										double t2Hash = (double)((vHash-v0)/b);
+//									Add 2 new states
+										tTotal = newSp.getTimeOfState(i);
+										tTotal+=t1Hash;
+										newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+										tTotal+=t2Hash;
+										hExit=path.getLengthOf(hSgm);
+										tExit=train.getLength();
+										newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+										currentSpeed = v0;
+										currentAcc = 0;
+										flag = true;
+									}
+									
+									if(vHash == v1) {
+										newSp = newSp.keepStates(i);
+										hExit = path.getLengthOf(hSgm);
+										tExit = train.getLength();
+										if(xdec > d1) {
+											double t1Hash = (double)((xdec-d1)/vHash);
+											double t2Hash = (double)((vHash-v0)/b);
+//										Add 2 new states
+											tTotal = newSp.getTimeOfState(i);
+											tTotal+=t1Hash;
+											newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+											tTotal+=t2Hash;
+											newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+										}else {
+											double tHash = (double)((vHash-v0)/b);
+//										Add 1 new state
+											tTotal = newSp.getTimeOfState(i);
+											tTotal+=tHash;
+											newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+										}
+										currentSpeed = v0;
+										currentAcc = 0;
+										flag = true;
+									}
 								}
 							}
 						}
@@ -316,12 +333,11 @@ public class Problem {
 			}
 			
 			if(!flag) {				
-				sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), hExit), currentSpeed), tTotal);
+				newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), hExit), currentSpeed), tTotal);
 			}
 			
 			if(hSgm == goal.getHSgm() && currentSpeed == goal.getSpeed()) {
-				sp.print();
-				return sp;
+				return newSp;
 			}
 			
 			Times.getMinT(currentAcc, currentSpeed, tExit, hExit, currentSpeedLimit);
@@ -392,6 +408,9 @@ public class Problem {
 			if(currentAcc > 0) {
 				t1 = maxRoot(0.5*currentAcc, currentSpeed, -tExit);
 				t2 = maxRoot(0.5*currentAcc, currentSpeed, -hExit);
+			}else if(currentAcc < 0){
+				t1 = maxRoot(0.5*currentAcc, currentSpeed, -tExit);
+				t2 = maxRoot(0.5*currentAcc, currentSpeed, -hExit);
 			}else {
 				t1 = tExit/currentSpeed;
 				t2 = hExit/currentSpeed;
@@ -408,6 +427,9 @@ public class Problem {
 
 		private static double maxRoot(double a, double b, double c) {
 			double delta = (double)Math.pow(b, 2) - 4*a*c;
+			if(delta<0) {
+				return 1000000000; // Really bit number (Infinite)
+			}
 			double res = (double)((-b+Math.sqrt(delta))/(2*a));
 			return res;
 		}

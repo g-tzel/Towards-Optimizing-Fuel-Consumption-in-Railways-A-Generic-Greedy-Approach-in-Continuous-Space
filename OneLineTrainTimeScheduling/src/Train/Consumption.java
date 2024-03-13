@@ -3,9 +3,10 @@ package Train;
 import Main.SpeedProfile;
 
 public class Consumption {
+//	The weights must follow this constraint: ka >> kv > kb
+	private static final double ka=50; // Acceleration Weight
 	private static final double kv=1; // Speed Weight (could be static or not)
-	private static final double ka=1; // Acceleration Weight
-	private static final double kb=1; // Deceleration Weight
+	private static final double kb=0.5; // Deceleration Weight
 	private static double deltaT;
 	
 	public static double calcConsumtion(SpeedProfile sp) {
@@ -27,7 +28,7 @@ public class Consumption {
 		double Wv = 0;
 		double a = (endSpeed - startSpeed)/(deltaT);
 		
-		Wv =  kv * ((2*startSpeed + a*(deltaT))/2)*(deltaT);
+		Wv =  kv * deltaT;
 		double result = Wv + calcWl(a, deltaT);
 		if(result<0) {
 			return 0;
