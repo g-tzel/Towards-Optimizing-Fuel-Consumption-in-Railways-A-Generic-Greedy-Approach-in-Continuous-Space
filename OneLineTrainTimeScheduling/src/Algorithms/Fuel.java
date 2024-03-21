@@ -1,9 +1,9 @@
 package Algorithms;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import Algorithms.Problem.Times;
 import Main.SpeedProfile;
 import Path.Path;
 import Train.Consumption;
@@ -29,9 +29,9 @@ public class Fuel {
 			remTime = time;
 			SpeedProfile newSp = givenSp;
 //			For now, choose on of the following three
-//			newSp = smoothAcc(newSp, remTime); //Probably impossible, TOBEDELETED
-//			newSp = replaceCru(newSp, remTime);
-			newSp = addCru(newSp, remTime);
+			newSp = replaceCru(newSp, remTime);
+//			newSp = addCru(newSp, remTime);
+//			newSp = smoothAcc(newSp, remTime);
 			newSp.print();
 			System.out.println("With an extra " + (time-remTime) + " seconds we have cunsumption: " + Consumption.calcConsumtion(newSp));
 			return newSp;
@@ -46,11 +46,11 @@ public class Fuel {
 		while(time>0) {
 			double extraTimeUsed = time; // We may not use all available extra time
 			Map<Integer, State> accToDecStates = getAccToDecStates(oldSp);
-	//		Get state with highest consumption
+//			Get state with highest consumption
 			double max = 0;
 			int maxIndex = -1;
 			for(int index : accToDecStates.keySet()) {
-	//			This is the time in which the deceleration starts in the Speed Profile
+//				This is the time in which the deceleration starts in the Speed Profile
 				double tmin = oldSp.getTimeOfState(index);
 				State accToDecState = accToDecStates.get(index);
 				double a = (accToDecState.getSpeed()-oldSp.getSpeedOf(index-1))/(tmin-oldSp.getTimeOfState(index-1));
@@ -58,7 +58,7 @@ public class Fuel {
 				State targetState = getTargetStateAcc(oldSp, index, a);
 				int targetIndex = oldSp.getIndexOf(targetState);
 				
-	//			Calculate consumption of acceleration.
+//				Calculate consumption of acceleration.
 				SpeedProfile tempSp = new SpeedProfile();
 				for(int i = targetIndex; i <= index; i++) {
 					tempSp.addState(oldSp.getState(i), oldSp.getEndTimeAtState(i));
@@ -72,18 +72,14 @@ public class Fuel {
 			
 //			If no more cases to check, end task
 			if(maxIndex < 1) {
-				return newSp;
+				return oldSp;
 			}
-			
-	//		This is the time in which the deceleration starts in the Speed Profile
-			double tmin = oldSp.getTimeOfState(maxIndex);
 			
 //			Get first the state with different acceleration rate (targetState)
 			State accToDecState = accToDecStates.get(maxIndex);
-			double a = (accToDecState.getSpeed()-oldSp.getSpeedOf(maxIndex-1))/(tmin-oldSp.getTimeOfState(maxIndex-1));
+			double a = (accToDecState.getSpeed()-oldSp.getSpeedOf(maxIndex-1))/(oldSp.getTimeOfState(maxIndex)-oldSp.getTimeOfState(maxIndex-1));
 			State targetState = getTargetStateAcc(oldSp, maxIndex, a);
 			int targetIndex = oldSp.getIndexOf(targetState);
-			
 			
 //			Find the speed of the cruising state that will be added
 			double maxSpeed = accToDecState.getSpeed();
@@ -105,12 +101,12 @@ public class Fuel {
 			double crSpeedTimeDec = (crSpeed-accToDecState.getSpeed())/dec;
 			double de = accToDecStateDistance + accToDecState.getSpeed()*crSpeedTimeDec + 0.5*dec*Math.pow(crSpeedTimeDec, 2);
 			
-			double b; // Time it gets to accelerate to accToDecState.getSpeed() and then decelerate to crSpeed (in the oldSp)
+//			Time it gets to accelerate to accToDecState.getSpeed() and then decelerate to crSpeed (in the oldSp)
+			double b = (accToDecState.getSpeed()-crSpeed)/acc + (crSpeed-accToDecState.getSpeed())/dec;
 			
 //			Find the crSpeed that verifies the equation:
 //			[distance from crSpeed (while acc) to crSpeed (while dec) == distance of cruising at crSpeed with extra time] 
 			while(true) {
-				b = (accToDecState.getSpeed()-crSpeed)/acc + (crSpeed-accToDecState.getSpeed())/dec;
 				double dTraveled = crSpeed*(extraTimeUsed+b); //Distance that can be traveled while cruising on crSpeed for extraTimeUsed
 				double totalDistance = ds + dTraveled;
 				
@@ -139,6 +135,8 @@ public class Fuel {
 
 				crSpeedTimeDec = (crSpeed-accToDecState.getSpeed())/dec;
 				de = accToDecStateDistance + accToDecState.getSpeed()*crSpeedTimeDec + 0.5*dec*Math.pow(crSpeedTimeDec, 2);
+				
+				b = (accToDecState.getSpeed()-crSpeed)/acc + (crSpeed-accToDecState.getSpeed())/dec;
 			}
 			
 			newSp = oldSp.keepStates(targetIndex);
@@ -153,6 +151,7 @@ public class Fuel {
 			double newTimeDec = newTimeAcc+extraTimeUsed+b;
 			double newDistDec = oldSp.calcDistTraveled(maxIndex+1)-de;
 			
+//			Calculate the hSgm and the tSgm at the end of the cruising state
 			Train train = problem.getTrain();
 			int hSgm = oldSp.getState(maxIndex+1).getHSgm();
 			double sgmLength = path.getLengthOf(hSgm);
@@ -172,6 +171,7 @@ public class Fuel {
 				tSgm--;
 				sgmLength += path.getLengthOf(tSgm);
 			}
+			
 			newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm),
 					newDistDec), crSpeed), newTimeDec);
 			
@@ -187,15 +187,11 @@ public class Fuel {
 //			Problem problem = new Problem(train, path, init, goal);
 //			newSp = problem.solveAgain(newSp);
 			
-			if(newSp == null) {
-				extraTimeUsed -= 1;
-			}else {
-				oldSp = newSp; // In case there are multiple accToDecStates
+			oldSp = newSp; // In case there are multiple accToDecStates
 				
 //			Update available time for other modifications of the Speed Profile
-				remTime -= extraTimeUsed;
-				time -= extraTimeUsed;				
-			}
+			remTime -= extraTimeUsed;
+			time -= extraTimeUsed;				
 		}
 		return newSp;
 	}
@@ -206,6 +202,8 @@ public class Fuel {
 		while(time>0) {
 			double extraTimeUsed = time;
 			Map<Integer, State> crStates = crStates(oldSp);
+			
+//			Get state with highest consumption
 			double max = 0;
 			int maxIndex = -1;
 			for(int index : crStates.keySet()) {
@@ -254,11 +252,12 @@ public class Fuel {
 			if(maxIndex < 1) {
 				return oldSp;
 			}
+			
 			State crState = oldSp.getState(maxIndex);
 			double crSpeed = crState.getSpeed();
 				
-			State targetState = null;
 //			Get the first accelerating state of the states before the cruising state
+			State targetState = null;
 			targetState = oldSp.getState(0); 
 			State startCrState = targetState; // The first cruising state
 			double tempSpeed = crSpeed;
@@ -318,6 +317,9 @@ public class Fuel {
 					double temp = (-speed + Math.sqrt(Math.pow(speed, 2) - 4*0.5*newAcc*(-(de-ds))))/(2*0.5*newAcc);
 					if (temp < deltaT) {
 						extraTimeUsed = temp-(oldSp.getEndTimeAtState(maxIndex)-(oldSp.getEndTimeAtState(targetIndex)+accTime));
+						deltaT = oldSp.getEndTimeAtState(maxIndex)-(oldSp.getEndTimeAtState(targetIndex)+accTime)+extraTimeUsed;
+//						System.out.println(speed*(deltaT)+0.5*newAcc*Math.pow(deltaT,2));
+//						break;
 					}
 					maxSpeed = speed; // Possibly won't ever run. TODO: Check
 				}else {
@@ -331,8 +333,9 @@ public class Fuel {
 				accTime = (speed-targetState.getSpeed())/oldAcc;
 				ds = targetStateDistance + targetState.getSpeed()*accTime + 0.5*oldAcc*Math.pow(accTime, 2);
 			}
+
 			newSp = oldSp.keepStates(targetIndex);
-//			Add a state with speed. The start of the new state/acceleration rate
+//			Add a state with "speed". The start of the new state/acceleration rate
 			double newDist = targetState.getDist()-(targetState.getSpeed()*accTime+0.5*oldAcc*Math.pow(accTime,2));
 			if(newDist<0) {
 				newDist = path.getLengthOf(targetState.getHSgm())-0.5*oldAcc*Math.pow(accTime,2);
@@ -366,127 +369,179 @@ public class Fuel {
 		return newSp;
 	}
 
-//	Smooth the acceleration (accelerate at a slower rate).
-//	It is probably impossible to get at the same point (speed and distance) with a slower acceleration rate and more time
-//	TOBEDELETED
+//	Smooth the acceleration and the deceleration(accelerate and decelerate at slower rates).
+//	The function takes into account only instances in which the acceleration and deceleration are consecutive.
 	private SpeedProfile smoothAcc(SpeedProfile oldSp, double time) {		
+		ArrayList<State> skipStates = new ArrayList<>();
 		SpeedProfile newSp = oldSp;
-//		oldSp.calcDistTraveled(oldSp.nOfEntries()-1);
 		while(remTime>0) {
-			double extraTimeUsed = time; // TODO: Check if it's worth to use extraTimeUsed=time/accToDecStates.size();
+			double extraTimeUsed = time;
 			Map<Integer, State> accToDecStates = getAccToDecStates(oldSp);
+			
 //			Get state with highest consumption
 			double max = 0;
 			int maxIndex = -1;
 			for(int index : accToDecStates.keySet()) {
-//				This is the time in which the deceleration starts in the Speed Profile
-				double tmin = oldSp.getTimeOfState(index);
 				State accToDecState = accToDecStates.get(index);
-				double a = (accToDecState.getSpeed()-oldSp.getSpeedOf(index-1))/(tmin-oldSp.getTimeOfState(index-1));
-				
-				State targetState = getTargetStateAcc(oldSp, index, a);
-				int targetIndex = oldSp.getIndexOf(targetState);
-				
-//				Calculate consumption of acceleration.
-				SpeedProfile tempSp = new SpeedProfile();
-				for(int i = targetIndex; i <= index; i++) {
-					tempSp.addState(oldSp.getState(i), oldSp.getEndTimeAtState(i));
-				}
-				double tempCons = Consumption.calcConsumtion(tempSp);
-				if(max<tempCons) {
-					max = tempCons;
-					maxIndex = index;
+				if(!skipStates.contains(accToDecState)) {
+					State targetState = null;
+//					Get the first accelerating state of the states before the cruising state
+					targetState = oldSp.getState(0); 
+					double tempSpeed = accToDecState.getSpeed();
+					for(int i = maxIndex-1; i >= 0; i--) {
+						double prevSpeed = oldSp.getSpeedOf(i);
+						if(prevSpeed < tempSpeed) {
+							if(i==0) {
+								break;
+							}
+							double deltaT = oldSp.getEndTimeAtState(i+1)-oldSp.getEndTimeAtState(i);
+							double acc = (tempSpeed-prevSpeed)/deltaT;
+							for(int j=i-1; j > 0; j--) {
+								deltaT = oldSp.getEndTimeAtState(j+1)-oldSp.getEndTimeAtState(j);
+								double tempAcc = (oldSp.getSpeedOf(j+1)-oldSp.getSpeedOf(j))/deltaT;
+								if(acc > tempAcc) {
+									targetState = oldSp.getState(j+1);
+									break;
+								}
+							}
+							break;
+						}
+						tempSpeed = prevSpeed;
+					}
+					int targetIndex = oldSp.getIndexOf(targetState);
+					
+//					Calculate consumption of acceleration.
+					SpeedProfile tempSp = new SpeedProfile();
+					for(int i = targetIndex; i <= index; i++) {
+						tempSp.addState(oldSp.getState(i), oldSp.getEndTimeAtState(i));
+					}
+					double tempCons = Consumption.calcConsumtion(tempSp);
+					if(max<tempCons) {
+						max = tempCons;
+						maxIndex = index;
+					}
 				}
 			}
 			
 //			If no more cases to check, end task
 			if(maxIndex < 1) {
-				return newSp;
+				return oldSp;
 			}
 			
 //			This is the time in which the deceleration starts in the Speed Profile
-			double tmin = oldSp.getTimeOfState(maxIndex);
 			State accToDecState = accToDecStates.get(maxIndex);
-			double a = (accToDecState.getSpeed()-oldSp.getSpeedOf(maxIndex-1))/(tmin-oldSp.getTimeOfState(maxIndex-1));
-			State targetState = getTargetStateAcc(oldSp, maxIndex, a);
+
+//			Get the first accelerating state of the states before the cruising state
+			State targetState = null;
+			targetState = oldSp.getState(0); 
+			double tempSpeed = accToDecState.getSpeed();
+			for(int i = maxIndex-1; i >= 0; i--) {
+				double prevSpeed = oldSp.getSpeedOf(i);
+				if(prevSpeed < tempSpeed) {
+					if(i==0) {
+						break;
+					}
+					double deltaT = oldSp.getEndTimeAtState(i+1)-oldSp.getEndTimeAtState(i);
+					double acc = (tempSpeed-prevSpeed)/deltaT;
+					for(int j=i-1; j > 0; j--) {
+						deltaT = oldSp.getEndTimeAtState(j+1)-oldSp.getEndTimeAtState(j);
+						double tempAcc = (oldSp.getSpeedOf(j+1)-oldSp.getSpeedOf(j))/deltaT;
+						if(acc > tempAcc) {
+							targetState = oldSp.getState(j+1);
+							break;
+						}
+					}
+					break;
+				}
+				tempSpeed = prevSpeed;
+			}
 			int targetIndex = oldSp.getIndexOf(targetState);
 			
-			
-			
-//			Find the speed and the duration of the new acceleration state that will be added
+//			Find the highest speed and the duration of the new acceleration and deceleration states
 			double maxSpeed = accToDecState.getSpeed();
 			double minSpeed = targetState.getSpeed();
-			double speed = (maxSpeed+minSpeed)/2; // The speed in which the acceleration rate will change
+			double maxPerc = 1;
+			double minPerc = 0;
+			double perc = (maxPerc+minPerc)/2; // The percentage of the oldAcc that'll be used
 			
-// 			Distance traveled until reaching speed (in the oldSp)
-			double targetStateDistance = oldSp.calcDistTraveled(targetIndex);
+// 			Distance traveled while accelerating
 			double deltaT = oldSp.getEndTimeAtState(maxIndex)-oldSp.getEndTimeAtState(targetIndex);
 			double oldAcc = (maxSpeed-minSpeed)/(deltaT);			
-			double accTime = (speed-targetState.getSpeed())/oldAcc;
-			double ds = targetStateDistance + targetState.getSpeed()*accTime + 0.5*oldAcc*Math.pow(accTime, 2);
+			double ds = targetState.getSpeed()*deltaT + 0.5*oldAcc*Math.pow(deltaT, 2);
 			
-// 			Distance traveled until reaching the end of the cruising state (in the oldSp)
-			double de = oldSp.calcDistTraveled(maxIndex);
-			double newAcc; // The new acceleration rate
+			double oldTime = deltaT; //Total time of the old acceleration and deceleration states
+			
+// 			Distance traveled while decelerating
+			double afterDecSpeed = oldSp.getSpeedOf(maxIndex+1);
+			deltaT = oldSp.getEndTimeAtState(maxIndex+1)-oldSp.getEndTimeAtState(maxIndex);
+			double oldDec = (afterDecSpeed-maxSpeed)/(deltaT);			
+			double de = accToDecState.getSpeed()*deltaT + 0.5*oldDec*Math.pow(deltaT, 2);
+
+			oldTime += deltaT;
+			
+			double maxDec = problem.getTrain().getMaxDec(); // Locomotive's max deceleration rate
+			double newAccTime; // Duration of acceleration
+			double newDecTime; // Duration of deceleration
+			double newMaxSpeed; // Highest speed the train will reach before decelerating
 			
 			while(true) {
-				deltaT = oldSp.getEndTimeAtState(maxIndex)-(oldSp.getEndTimeAtState(targetIndex)+accTime)+extraTimeUsed;
-				newAcc = (maxSpeed-speed)/deltaT;
-				double dTraveled = speed*(deltaT)+0.5*newAcc*Math.pow(deltaT,2); //Distance that can be traveled on new state
-				double totalDistance = ds + dTraveled;
+				double newAcc = oldAcc * perc; // The new acceleration rate (a percentage of the oldAcc)
+				newAccTime = (-minSpeed + Math.sqrt(Math.pow(minSpeed, 2) - 4*0.5*newAcc*(-ds)))/(2*0.5*newAcc);
+				newMaxSpeed = minSpeed+newAccTime*newAcc;
+				newDecTime = de/(0.5*(afterDecSpeed+newMaxSpeed));
+				double newDec = (afterDecSpeed-newMaxSpeed)/newDecTime; // The new deceleration rate
+
+				double newTime = newAccTime+newDecTime; // Total time of the new acceleration and deceleration states
 				
-				if(totalDistance == de) {
+				if(newTime == oldTime+extraTimeUsed) {
 					break;
 				}
 				
-				if(totalDistance > de) {
-//					That means that it is possible with the current speed and acceleration rate, but we won't use all the available extra time
-					double temp = (-speed + Math.sqrt(Math.pow(speed, 2) - 4*0.5*newAcc*(-(de-ds))))/(2*0.5*newAcc);
-					if (temp <= deltaT) {
-						extraTimeUsed = temp-(oldSp.getEndTimeAtState(maxIndex)-(oldSp.getEndTimeAtState(targetIndex)+accTime));
-						System.out.println(speed*(temp)+0.5*newAcc*Math.pow(temp,2));
-						break;
-					}
-					maxSpeed = speed; // Possibly won't ever run. TODO: Check
+				if(newTime > oldTime+extraTimeUsed) {
+					minPerc = perc;
 				}else {
-//					That means that we need a higher speed
-					minSpeed = speed;					
+					if(newDec >= -maxDec) {
+						extraTimeUsed=newTime-oldTime;
+						break;				
+					}
+					maxPerc = perc;
 				}
 				
-//				Update the variables' values
-				speed = (maxSpeed+minSpeed)/2;
-				
-				accTime = (speed-targetState.getSpeed())/oldAcc;
-				ds = targetStateDistance + targetState.getSpeed()*accTime + 0.5*oldAcc*Math.pow(accTime, 2);
+				perc = (maxPerc+minPerc)/2;
 			}
-			deltaT = oldSp.getEndTimeAtState(maxIndex)-(oldSp.getEndTimeAtState(targetIndex)+accTime)+extraTimeUsed;
-			System.out.println(minSpeed+accTime*oldAcc);
-			System.out.println(speed+deltaT*newAcc);
-			System.out.println(ds+speed*(deltaT)+0.5*newAcc*Math.pow(deltaT,2));
-			
-//			Replace the accToDecState with one of slower acceleration rate
-			newSp = oldSp.keepStates(targetIndex);		
-			newSp.addState(accToDecState, tmin+extraTimeUsed);
-			
-			newSp.calcDistTraveled(newSp.nOfEntries()-1);
-			
-//			Add the remaining states with updated time
-//			for(int i = maxIndex+1; i < oldSp.nOfEntries(); i++) {
-//				newSp.addState(oldSp.getState(i), oldSp.getTimeOfState(i)+extraTimeUsed);
-//			}
-			
-//			Calculate the rest of the speed profile.
-//			It should be the same as before with extra time.
-			State init = newSp.getLastState();
-			State goal = problem.getGoal();
-			Train train = problem.getTrain();
-			Problem problem = new Problem(train, path, init, goal);
-			newSp = problem.solveAgain(newSp);
-			oldSp = newSp; // In case there are multiple accToDecStates
-						
-//			Update available time for other modifications of the Speed Profile
-			remTime -= extraTimeUsed;
-			time -= extraTimeUsed;
+
+//			We set a threshold so not to accelerate for indifferent of speed
+			if(newMaxSpeed < minSpeed + 0.00001) {
+//				Remove completed instances
+				skipStates.add(accToDecState);
+			}else {
+				newSp = oldSp.keepStates(targetIndex);
+				
+//				Replace the acceleration state with one with slower acceleration rate
+				newSp.addState(new State(new Position(path.getSegments(accToDecState.getTSgm(), accToDecState.getHSgm()),
+						accToDecState.getDist()), newMaxSpeed), oldSp.getEndTimeAtState(targetIndex) + newAccTime);
+				
+//				Replace the deceleration state with one with slower deceleration rate
+				newSp.addState(oldSp.getState(maxIndex+1), oldSp.getEndTimeAtState(maxIndex+1)+extraTimeUsed);
+				
+//				Add the remaining states with updated time
+				for(int i = maxIndex+2; i < oldSp.nOfEntries(); i++) {
+					newSp.addState(oldSp.getState(i), oldSp.getTimeOfState(i)+extraTimeUsed);
+				}
+				
+//				Calculate the rest of the speed profile.
+//				It should be the same as before with extra time.
+//				State init = newSp.getLastState();
+//				State goal = problem.getGoal();
+//				Train train = problem.getTrain();
+//				Problem problem = new Problem(train, path, init, goal);
+//				newSp = problem.solveAgain(newSp);
+				oldSp = newSp; // In case there are multiple accToDecStates
+				
+//				Update available time for other modifications of the Speed Profile
+				remTime -= extraTimeUsed;
+				time -= extraTimeUsed;
+			}
 		}
 		return newSp;
 	}

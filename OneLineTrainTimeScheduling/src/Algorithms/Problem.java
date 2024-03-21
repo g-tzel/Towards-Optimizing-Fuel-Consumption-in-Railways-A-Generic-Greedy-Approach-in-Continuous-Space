@@ -186,7 +186,6 @@ public class Problem {
 
 	public SpeedProfile solveAgain(SpeedProfile oldSp) {
 //		Initialization
-		boolean first = true;
 		double currentSpeed = init.getSpeed();
 		
 		int hSgm = init.getHSgm();
@@ -233,79 +232,71 @@ public class Problem {
 						double v0 = currentSpeedLimit;
 						double v1 = speed(newSp, i);
 						double v2 = speed(newSp, i+1);
-						double a = train.getMaxAcc();
-						double b = train.getMaxDec();
+						double a = (v2-v1)/(newSp.getEndTimeAtState(i+1)-newSp.getEndTimeAtState(i)); //train.getMaxAcc();
+						double b = train.getMaxDec();  
+							
+//						Calculate formulas
+						double d1 = newSp.calcDistTraveled(i);
+						double d = dist(newSp);
+						double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
+						double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
 						
-//						Consecutive segments that train does not decelerate
-						if(v2 >= v1){
-							if(v2 == v1) {
-								a = 0;								
-							}
-							
-//							Calculate formulas
-							double d1 = newSp.calcDistTraveled(i);
-							double d = dist(newSp);
-							double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
-							double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
-							
-							if(xdec>=d1) { //Not in paper
-								if(newSp.getState(i+1).equals(init)) {
-									newSp = newSp.keepStates(i+1);
+						if(xdec>=d1) { //Not in paper
+							if(newSp.getState(i+1).equals(init)) {
+								newSp = newSp.keepStates(i+1);
+								hExit = path.getLengthOf(hSgm);
+								tExit = train.getLength();
+								if(xdec > d1) {
+									double tHash = (double)((vHash-v0)/b);
+//									Add 1 new state
+									tTotal = newSp.getTimeOfState(i+1);
+									tTotal+=tHash;
+									newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+								}
+								currentSpeed = v0;
+								currentAcc = 0;
+								flag = true;
+							}else {									
+								if(vHash > v1) {
+									newSp = newSp.keepStates(i);
+									double t1Hash = (double)((vHash-v1)/a);
+									double t2Hash = (double)((vHash-v0)/b);
+//									Add 2 new states
+									tTotal = newSp.getTimeOfState(i);
+									tTotal+=t1Hash;
+									newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+									tTotal+=t2Hash;
+									hExit=path.getLengthOf(hSgm);
+									tExit=train.getLength();
+									newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+									currentSpeed = v0;
+									currentAcc = 0;
+									flag = true;
+								}
+								
+								if(vHash == v1) {
+									newSp = newSp.keepStates(i);
 									hExit = path.getLengthOf(hSgm);
 									tExit = train.getLength();
 									if(xdec > d1) {
+										double t1Hash = (double)((xdec-d1)/vHash);
+										double t2Hash = (double)((vHash-v0)/b);
+//										Add 2 new states
+										tTotal = newSp.getTimeOfState(i);
+										tTotal+=t1Hash;
+										newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
+										tTotal+=t2Hash;
+										newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
+									}else {
 										double tHash = (double)((vHash-v0)/b);
 //										Add 1 new state
-										tTotal = newSp.getTimeOfState(i+1);
+										tTotal = newSp.getTimeOfState(i);
 										tTotal+=tHash;
 										newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
 									}
 									currentSpeed = v0;
 									currentAcc = 0;
 									flag = true;
-									first = false;
-								}else {									
-									if(vHash > v1) {
-										newSp = newSp.keepStates(i);
-										double t1Hash = (double)((vHash-v1)/a);
-										double t2Hash = (double)((vHash-v0)/b);
-//									Add 2 new states
-										tTotal = newSp.getTimeOfState(i);
-										tTotal+=t1Hash;
-										newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
-										tTotal+=t2Hash;
-										hExit=path.getLengthOf(hSgm);
-										tExit=train.getLength();
-										newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
-										currentSpeed = v0;
-										currentAcc = 0;
-										flag = true;
-									}
-									
-									if(vHash == v1) {
-										newSp = newSp.keepStates(i);
-										hExit = path.getLengthOf(hSgm);
-										tExit = train.getLength();
-										if(xdec > d1) {
-											double t1Hash = (double)((xdec-d1)/vHash);
-											double t2Hash = (double)((vHash-v0)/b);
-//										Add 2 new states
-											tTotal = newSp.getTimeOfState(i);
-											tTotal+=t1Hash;
-											newSp.addState(new State(new Position(path.getSegments(newSp.getLastState().getTSgm(), newSp.getLastState().getHSgm()), d-xdec), vHash), tTotal);
-											tTotal+=t2Hash;
-											newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
-										}else {
-											double tHash = (double)((vHash-v0)/b);
-//										Add 1 new state
-											tTotal = newSp.getTimeOfState(i);
-											tTotal+=tHash;
-											newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), path.getLengthOf(hSgm)), v0), tTotal);
-										}
-										currentSpeed = v0;
-										currentAcc = 0;
-										flag = true;
-									}
 								}
 							}
 						}

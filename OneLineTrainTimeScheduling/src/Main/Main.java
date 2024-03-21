@@ -12,7 +12,7 @@ public class Main {
 
 	public static void main(String[] args) {
 //		problem1();
-//		problem2();
+		problem2();
 //		problem3();
 	}
 
@@ -121,10 +121,10 @@ public class Main {
 //		Create a path
 		Path p = new Path();
 		Segment ex0 = new Segment(0, 1000, 1000, 100);
-		Segment ex1 = new Segment(1000, 2000, 1000, 100);
+		Segment ex1 = new Segment(1000, 10000, 9000, 100);
 //		Segment ex2 = new Segment(0, 150, 150, 100);
 //		Segment ex3 = new Segment(0, 150, 150, 100);
-		Segment exfx = new Segment(2000, 2000, 0, 0);
+		Segment exfx = new Segment(10000, 10000, 0, 0);
 		p.addSegment(ex0);
 		p.addSegment(ex1);
 		p.addSegment(exfx);
