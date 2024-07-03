@@ -17,7 +17,7 @@ public class Position {
 		this.dist = dist;
 	}
 
-	public Position(Segment seg, int dist) {
+	public Position(Segment seg, double dist) {
 		span = new Path();
 		span.addSegment(seg);
 		this.dist = dist;

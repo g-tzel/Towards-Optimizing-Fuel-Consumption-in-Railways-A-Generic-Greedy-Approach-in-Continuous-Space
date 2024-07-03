@@ -183,6 +183,4 @@ public class SpeedProfile {
 		}
 		return distance;
 	}
-	
-	
 }

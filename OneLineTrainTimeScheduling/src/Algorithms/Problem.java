@@ -69,6 +69,7 @@ public class Problem {
 //				Backtracking
 				if(currentSpeed > currentSpeedLimit) {
 					System.out.println("BackTracking");
+					sp.addState(new State(new Position(path.getSegments(tSgm, hSgm), hExit), currentSpeed), tTotal); // Not in paper
 //					Algorithm 2
 					for(int i = length(sp)-2; i >= 0 && !flag; i--) {
 //						Initialization
@@ -85,7 +86,7 @@ public class Problem {
 							}
 							
 //							Calculate formulas
-							double d1 = dist(sp, i);
+							double d1 = sp.calcDistTraveled(i);
 							double d = dist(sp);
 							double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
 							double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
@@ -175,7 +176,7 @@ public class Problem {
 			
 			if(hSgm == goal.getHSgm() && currentSpeed == goal.getSpeed()) {
 				sp.print();
-				System.out.println(Consumption.calcConsumtion(sp));
+				System.out.println(sp.calcDistTraveled(sp.nOfEntries()-1));
 				return sp;
 			}
 			
@@ -184,7 +185,12 @@ public class Problem {
 		return sp;
 	}
 
+//	The algorithm from the paper isn't modified to solve half a problem.
 	public SpeedProfile solveAgain(SpeedProfile oldSp) {
+		if(init.getSpeed() == goal.getSpeed() && init.getHSgm() == goal.getHSgm()) {
+			return oldSp;
+		}
+		
 //		Initialization
 		double currentSpeed = init.getSpeed();
 		
@@ -192,7 +198,14 @@ public class Problem {
 		int tSgm = init.getTSgm();
 		
 		double hExit = init.getDist();
-		double tExit = path.getLengthOf(hSgm) - (init.getTotalLength() - hExit - train.getLength());
+		double temp = 0;
+		for(int i = 0; i <= tSgm; i++) {
+			temp+=path.getLengthOf(i);
+		}
+		double tExit = temp - oldSp.calcDistTraveled(oldSp.nOfEntries()-1) + train.getLength();// path.getLengthOf(hSgm) - (init.getTotalLength() - hExit - train.getLength());
+		if(tExit <= 0) {
+			tExit = train.getLength();
+		}
 		if(hExit == 0) {
 			hSgm++;
 			hExit = path.getLengthOf(hSgm);
@@ -226,6 +239,7 @@ public class Problem {
 //				Backtracking
 				if(currentSpeed > currentSpeedLimit) {
 					System.out.println("BackTracking");
+					newSp.addState(new State(new Position(path.getSegments(tSgm, hSgm), hExit), currentSpeed), tTotal); // Not in paper
 //					Algorithm 2
 					for(int i = length(newSp)-2; i >= 0 && !flag; i--) {
 //						Initialization
