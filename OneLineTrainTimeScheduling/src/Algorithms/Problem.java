@@ -9,6 +9,8 @@ import Train.Position;
 import Train.State;
 import Train.Train;
 
+
+// Determine Time-Optimal Speed Profile
 public class Problem {
 	private Train train;
 	private Path path;
@@ -87,7 +89,7 @@ public class Problem {
 							
 //							Calculate formulas
 							double d1 = sp.calcDistTraveled(i);
-							double d = dist(sp);
+							double d = sp.calcDistTraveled(sp.nOfEntries()-1);
 							double xdec = (Math.pow(v0, 2) - Math.pow(v1, 2) + 2*(b*d+a*d1))/(2*(a+b)); // Deceleration point
 							double vHash = Math.sqrt(Math.pow(v0, 2) - 2*b*(xdec-d)); // Starting speed of deceleration
 							
