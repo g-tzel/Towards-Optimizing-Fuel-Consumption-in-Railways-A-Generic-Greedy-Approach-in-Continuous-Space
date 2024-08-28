@@ -1,2 +1,6 @@
-# train-fuel-consumption
-In this project we find the best speed profile (fewer fuel consumed) for a given train over a given route and time limit.
+# Towards Optimizing Fuel Consumption in Railways: A Generic Greedy Approach in Continuous Space
+This code is the implementation of my dissertation for my Bachelor Thesis in Applied Informatics @ Univeristy of Macedonia.
+
+This thesis addresses the challenge of producing fuel-optimal speed profiles for locomotives by transforming time-optimal profiles. In the time-optimal speed profile, the train travels over a single segmented railway line with various speed limits for the least time. Our approach aims to adjust its speed profile by extending its total duration to produce the fuel-optimal speed profile within that extended time frame. Rail networks are crucial to the economy, and their demand has been increasing over the years. However, the minimization of fuel consumption for the described problem has not been studied. Our approach modifies specific instances of the given speed profile to minimize the fraction of fuel consumption over time.
+
+The developed iterative algorithm consists of two sub-algorithms that address those instances, following a greedy approach where the main variables are time and speed. The study's results demonstrated that it is most effective to adjust only "Acceleration and Deceleration" and "Acceleration, Cruising and Deceleration" throttle sequences, with the former always being the best option. Our proposed solution could contribute to minimizing fuel consumption in railway networks by leveraging the delays created to avoid collisions at intersections as the basis of the model.
