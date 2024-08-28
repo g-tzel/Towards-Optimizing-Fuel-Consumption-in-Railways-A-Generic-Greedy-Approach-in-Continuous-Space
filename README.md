@@ -1,4 +1,4 @@
-#Towards Optimizing Fuel Consumption in Railways: A Generic Greedy Approach in Continuous Space
+# Towards Optimizing Fuel Consumption in Railways: A Generic Greedy Approach in Continuous Space
 This code is the implementation of my dissertation for my Bachelor Thesis in Applied Informatics @ Univeristy of Macedonia.
 
 This thesis addresses the challenge of producing fuel-optimal speed profiles for locomotives by transforming time-optimal profiles. In the time-optimal speed profile, the train travels over a single segmented railway line with various speed limits for the least time. Our approach aims to adjust its speed profile by extending its total duration to produce the fuel-optimal speed profile within that extended time frame. Rail networks are crucial to the economy, and their demand has been increasing over the years. However, the minimization of fuel consumption for the described problem has not been studied. Our approach modifies specific instances of the given speed profile to minimize the fraction of fuel consumption over time.
