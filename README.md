@@ -5,5 +5,4 @@ This thesis addresses the challenge of producing fuel-optimal speed profiles for
 
 The developed iterative algorithm consists of two sub-algorithms that address those instances, following a greedy approach where the main variables are time and speed. The study's results demonstrated that it is most effective to adjust only "Acceleration and Deceleration" and "Acceleration, Cruising and Deceleration" throttle sequences, with the former always being the best option. Our proposed solution could contribute to minimizing fuel consumption in railway networks by leveraging the delays created to avoid collisions at intersections as the basis of the model.
 
-You can check the research paper regarding this repository [here](https://dl.acm.org/doi/10.1145/3716554.3716587) 
-You can check the thesis regarding this repository [here](https://dspace.lib.uom.gr/handle/2159/32691?locale=en) 
+You can check the research paper and the thesis regarding this repository [here](https://dl.acm.org/doi/10.1145/3716554.3716587) and [here](https://dspace.lib.uom.gr/handle/2159/32691?locale=en), correspondingly.
